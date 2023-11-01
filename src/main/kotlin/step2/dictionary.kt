@@ -11,7 +11,7 @@ fun main() {
         println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
         when (readln().toInt()) {
             0 -> return
-            1 -> println("Учить слова")
+            1 -> println(firstDictionary.learnWords())
             2 -> println(firstDictionary.statistic())
             else -> println("Введено неверное значение")
         }
@@ -46,4 +46,23 @@ class Dictionary(
 
         println("Выучено $learnedWords из $totalWords слов | ${percent.toInt()}%")
     }
-}
+
+    fun learnWords() {
+        var isExit = true
+        while (isExit) {
+            val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }
+            for (i in unlearnedWords) {
+                println("${i.text}")
+                val listOfAnswers: MutableList<String> = mutableListOf()
+                listOfAnswers.add()
+                for (i in unlearnedWords){
+                    listOfAnswers.add(i.translate)
+
+                }
+                println("Варианты ответа: ")
+                println("Вернуться в главное меню?")
+                isExit = !readln().equals("да", ignoreCase = true)
+                if (!isExit) return
+            }
+        }
+    }
