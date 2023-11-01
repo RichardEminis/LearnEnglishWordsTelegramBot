@@ -21,7 +21,7 @@ fun main() {
 data class Word(
     val text: String,
     val translate: String,
-    val correctAnswersCount: Int?
+    var correctAnswersCount: Int?
 )
 
 class Dictionary(
@@ -50,19 +50,49 @@ class Dictionary(
     fun learnWords() {
         var isExit = true
         while (isExit) {
-            val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }
-            for (i in unlearnedWords) {
-                println("${i.text}")
-                val listOfAnswers: MutableList<String> = mutableListOf()
-                listOfAnswers.add()
-                for (i in unlearnedWords){
-                    listOfAnswers.add(i.translate)
+            if (dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }.isEmpty()) {
+                println("Вы выучили все слова")
+                return
+            }
+            for (i in dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }) {
 
+
+                var listOfAnswers: MutableList<String> = mutableListOf()
+                for (i in dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }) {
+                    listOfAnswers.add(i.translate)
                 }
-                println("Варианты ответа: ")
+
+
+                println("${i.text}")
+
+                listOfAnswers.remove(i.translate)
+                listOfAnswers = listOfAnswers.take(4).toMutableList()
+                listOfAnswers.add(i.translate)
+                listOfAnswers.shuffle()
+
+                var iterator = 1
+                var convertedWords = ""
+                for (i in listOfAnswers) {
+                    convertedWords += "${iterator++}) $i\n"
+                }
+
+                println("Варианты ответа: \n$convertedWords ")
+                if (readln().equals(i.translate, ignoreCase = true)) {
+                    i.correctAnswersCount = i.correctAnswersCount!! + 1
+                    println("Верный ответ")
+                } else {
+                    println("Неверный ответ")
+                }
+
+                if (dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }.isEmpty()) {
+                    println("Вы выучили все слова")
+                    return
+                }
+
                 println("Вернуться в главное меню?")
                 isExit = !readln().equals("да", ignoreCase = true)
                 if (!isExit) return
             }
         }
     }
+}
