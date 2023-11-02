@@ -1,5 +1,6 @@
 package step2
 
+import org.jetbrains.annotations.Nullable
 import java.io.File
 
 fun main() {
@@ -21,7 +22,7 @@ fun main() {
 data class Word(
     val text: String,
     val translate: String,
-    var correctAnswersCount: Int?
+    var correctAnswersCount: Int = 0
 )
 
 class Dictionary(
@@ -50,15 +51,15 @@ class Dictionary(
     fun learnWords() {
         var isExit = true
         while (isExit) {
-            if (dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }.isEmpty()) {
+            if (dictionary.filter { word: Word -> word.correctAnswersCount < 3 }.isEmpty()) {
                 println("Вы выучили все слова")
                 return
             }
-            for (i in dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }) {
+            for (i in dictionary.filter { word: Word -> word.correctAnswersCount < 3 }) {
 
 
                 var listOfAnswers: MutableList<String> = mutableListOf()
-                for (i in dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }) {
+                for (i in dictionary.filter { word: Word -> word.correctAnswersCount < 3 }) {
                     listOfAnswers.add(i.translate)
                 }
 
@@ -78,21 +79,14 @@ class Dictionary(
 
                 println("Варианты ответа: \n$convertedWords ")
                 if (readln().equals(i.translate, ignoreCase = true)) {
-                    i.correctAnswersCount = i.correctAnswersCount!! + 1
+                    i.correctAnswersCount++
                     println("Верный ответ")
                 } else {
                     println("Неверный ответ")
                 }
-
-                if (dictionary.filter { word: Word -> word.correctAnswersCount!! < 3 }.isEmpty()) {
-                    println("Вы выучили все слова")
-                    return
-                }
-
-                println("Вернуться в главное меню?")
-                isExit = !readln().equals("да", ignoreCase = true)
-                if (!isExit) return
             }
+            println("Вернуться в главное меню?")
+            isExit = !readln().equals("да", ignoreCase = true)
         }
     }
 }
