@@ -41,7 +41,7 @@ class Dictionary(
     }
 
     fun statistic() {
-        val learnedWords = dictionary.filter { word: Word -> word.correctAnswersCount!! >= 3 }.size
+        val learnedWords = dictionary.filter { word: Word -> word.correctAnswersCount >= 3 }.size
         val totalWords = dictionary.size
         val percent: Double = (learnedWords.toDouble() / totalWords.toDouble()) * 100
 
@@ -50,25 +50,24 @@ class Dictionary(
 
     fun learnWords() {
         var isExit = true
+        val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }
+        val learnedWords = dictionary.map { it -> it.translate }.toMutableList()
+        val exitToMainMenu = "Для выхода введи 'МЕНЮ'"
         while (isExit) {
-            if (dictionary.filter { word: Word -> word.correctAnswersCount < 3 }.isEmpty()) {
+            if (unlearnedWords.isEmpty()) {
                 println("Вы выучили все слова")
                 return
             }
-            for (i in dictionary.filter { word: Word -> word.correctAnswersCount < 3 }) {
+            for (i in unlearnedWords) {
 
-
-                var listOfAnswers: MutableList<String> = mutableListOf()
-                for (i in dictionary.filter { word: Word -> word.correctAnswersCount < 3 }) {
-                    listOfAnswers.add(i.translate)
-                }
-
+                var listOfAnswers = unlearnedWords.map { it -> it.translate }.toMutableList()
 
                 println("${i.text}")
 
                 listOfAnswers.remove(i.translate)
-                listOfAnswers = listOfAnswers.take(4).toMutableList()
-                listOfAnswers.add(i.translate)
+                listOfAnswers = listOfAnswers.take(3).toMutableList()
+                if (listOfAnswers.size < 3) listOfAnswers.add(i.translate) else listOfAnswers.add()
+
                 listOfAnswers.shuffle()
 
                 var iterator = 1
@@ -77,16 +76,19 @@ class Dictionary(
                     convertedWords += "${iterator++}) $i\n"
                 }
 
-                println("Варианты ответа: \n$convertedWords ")
-                if (readln().equals(i.translate, ignoreCase = true)) {
+                println("Варианты ответа: \n$convertedWords\n$exitToMainMenu")
+                val userAnswer = readln()
+                if (userAnswer.equals(i.translate, ignoreCase = true)) {
                     i.correctAnswersCount++
+                    learnedWords.add(i.translate)
+
                     println("Верный ответ")
+                } else if (userAnswer.equals("меню", ignoreCase = true)) {
+                    return
                 } else {
                     println("Неверный ответ")
                 }
             }
-            println("Вернуться в главное меню?")
-            isExit = !readln().equals("да", ignoreCase = true)
         }
     }
 }
