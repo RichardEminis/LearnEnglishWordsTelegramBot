@@ -50,24 +50,29 @@ class Dictionary(
 
     fun learnWords() {
         var isExit = true
-        val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }
-        val learnedWords = dictionary.map { it -> it.translate }.toMutableList()
+        val learnedWords = dictionary
+        var listOfAnswers: MutableList<String> = mutableListOf()
         val exitToMainMenu = "Для выхода введи 'МЕНЮ'"
+
         while (isExit) {
+            val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }
+
             if (unlearnedWords.isEmpty()) {
                 println("Вы выучили все слова")
                 return
             }
+
             for (i in unlearnedWords) {
 
-                var listOfAnswers = unlearnedWords.map { it -> it.translate }.toMutableList()
+                if (unlearnedWords.size >= 4) listOfAnswers = unlearnedWords.map { it -> it.translate }.toMutableList()
+                else listOfAnswers = learnedWords.map { it -> it.translate }.toMutableList()
 
                 println("${i.text}")
 
                 listOfAnswers.remove(i.translate)
+                listOfAnswers.shuffle()
                 listOfAnswers = listOfAnswers.take(3).toMutableList()
-                if (listOfAnswers.size < 3) listOfAnswers.add(i.translate) else listOfAnswers.add()
-
+                listOfAnswers.add(i.translate)
                 listOfAnswers.shuffle()
 
                 var iterator = 1
@@ -80,8 +85,6 @@ class Dictionary(
                 val userAnswer = readln()
                 if (userAnswer.equals(i.translate, ignoreCase = true)) {
                     i.correctAnswersCount++
-                    learnedWords.add(i.translate)
-
                     println("Верный ответ")
                 } else if (userAnswer.equals("меню", ignoreCase = true)) {
                     return
