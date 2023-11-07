@@ -12,7 +12,7 @@ fun main() {
         println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
         when (readln().toInt()) {
             0 -> return
-            1 -> println(firstDictionary.learnWords1())
+            1 -> println(firstDictionary.learnWords())
             2 -> println(firstDictionary.statistic())
             else -> println("Введено неверное значение")
         }
@@ -49,53 +49,6 @@ class Dictionary(
     }
 
     fun learnWords() {
-        var isExit = true
-        val learnedWords = dictionary
-        var listOfAnswers: MutableList<String> = mutableListOf()
-        val exitToMainMenu = "Для выхода введи 'МЕНЮ'"
-
-        while (isExit) {
-            val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }
-
-            if (unlearnedWords.isEmpty()) {
-                println("Вы выучили все слова")
-                return
-            }
-
-            for (i in unlearnedWords) {
-
-                if (unlearnedWords.size >= 4) listOfAnswers = unlearnedWords.map { it -> it.translate }.toMutableList()
-                else listOfAnswers = learnedWords.map { it -> it.translate }.toMutableList()
-
-                println("${i.text}")
-
-                listOfAnswers.remove(i.translate)
-                listOfAnswers.shuffle()
-                listOfAnswers = listOfAnswers.take(3).toMutableList()
-                listOfAnswers.add(i.translate)
-                listOfAnswers.shuffle()
-
-                var iterator = 1
-                var convertedWords = ""
-                for (i in listOfAnswers) {
-                    convertedWords += "${iterator++}) $i\n"
-                }
-
-                println("Варианты ответа: \n$convertedWords\n$exitToMainMenu")
-                val userAnswer = readln()
-                if (userAnswer.equals(i.translate, ignoreCase = true)) {
-                    i.correctAnswersCount++
-                    println("Верный ответ")
-                } else if (userAnswer.equals("меню", ignoreCase = true)) {
-                    return
-                } else {
-                    println("Неверный ответ")
-                }
-            }
-        }
-    }
-
-    fun learnWords1() {
         while (true) {
             var unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }.toMutableList()
 
