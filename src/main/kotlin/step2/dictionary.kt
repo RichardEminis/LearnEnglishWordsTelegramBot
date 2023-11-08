@@ -1,6 +1,5 @@
 package step2
 
-import org.jetbrains.annotations.Nullable
 import java.io.File
 
 fun main() {
@@ -50,36 +49,31 @@ class Dictionary(
 
     fun learnWords() {
         while (true) {
-            var unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }.toMutableList()
+            val unlearnedWords = dictionary.filter { word: Word -> word.correctAnswersCount < 3 }.toMutableList()
 
             if (unlearnedWords.isEmpty()) {
                 println("Вы выучили все слова")
                 return
             }
 
-            var selectedWord: Word
+            val numberOfDisplayedWords = 4
+            val displayedWords = unlearnedWords.shuffled().take(numberOfDisplayedWords).toMutableList()
+            val selectedWord = displayedWords.random()
 
-            if (unlearnedWords.size > 3) {
-                unlearnedWords = unlearnedWords.shuffled().toMutableList()
-                unlearnedWords = unlearnedWords.take(4).toMutableList()
-                selectedWord = unlearnedWords.first()
-                unlearnedWords = unlearnedWords.shuffled().toMutableList()
-            } else {
-                unlearnedWords.addAll(dictionary.filter { word: Word -> word.correctAnswersCount > 2 })
-                selectedWord = unlearnedWords.first()
-                unlearnedWords = unlearnedWords.shuffled().toMutableList()
-                unlearnedWords.remove(selectedWord)
-                unlearnedWords.add(selectedWord)
-                unlearnedWords = unlearnedWords.takeLast(4).toMutableList()
-                unlearnedWords = unlearnedWords.shuffled().toMutableList()
+            if (displayedWords.size < numberOfDisplayedWords) {
+                var learnedWords = dictionary.filter { word: Word -> word.correctAnswersCount > 2 }
+                learnedWords =
+                    learnedWords.shuffled().take(numberOfDisplayedWords - displayedWords.size).toMutableList()
+                displayedWords.addAll(learnedWords)
+                displayedWords.shuffle()
             }
 
             println("Изучаемое слово: ${selectedWord.text}")
             println("Варианты ответа: " +
-                        "\n1)${unlearnedWords[0].translate}" +
-                        "\n2)${unlearnedWords[1].translate}" +
-                        "\n3)${unlearnedWords[2].translate}" +
-                        "\n4)${unlearnedWords[3].translate}\n" +
+                        "\n1)${displayedWords[0].translate}" +
+                        "\n2)${displayedWords[1].translate}" +
+                        "\n3)${displayedWords[2].translate}" +
+                        "\n4)${displayedWords[3].translate}\n" +
                         "\nДля выхода введи 'МЕНЮ'")
 
             val userAnswer = readln()
