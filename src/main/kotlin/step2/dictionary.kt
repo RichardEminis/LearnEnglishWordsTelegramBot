@@ -93,14 +93,4 @@ class Dictionary(
             }
         }
     }
-
-    fun saveDictionary(dictionary: MutableList<Word>) {
-        val wordsFile = File("words.txt")
-        var savedText = ""
-        for (i in dictionary) {
-            val line = i.text + "|" + i.translate + "|" + i.correctAnswersCount + "\n"
-            savedText += line
-        }
-        wordsFile.writeText(savedText)
-    }
 }
