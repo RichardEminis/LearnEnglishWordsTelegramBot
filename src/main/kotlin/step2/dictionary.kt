@@ -84,6 +84,7 @@ class Dictionary(
             val userAnswer = readln()
             if (userAnswer.equals(selectedWord.translate, ignoreCase = true)) {
                 selectedWord.correctAnswersCount++
+                saveDictionary(dictionary)
                 println("Верный ответ\n")
             } else if (userAnswer.equals("меню", ignoreCase = true)) {
                 return
@@ -91,5 +92,15 @@ class Dictionary(
                 println("Неверный ответ\n")
             }
         }
+    }
+
+    fun saveDictionary(dictionary: MutableList<Word>) {
+        val wordsFile = File("words.txt")
+        var savedText = ""
+        for (i in dictionary) {
+            val line = i.text + "|" + i.translate + "|" + i.correctAnswersCount + "\n"
+            savedText += line
+        }
+        wordsFile.writeText(savedText)
     }
 }
