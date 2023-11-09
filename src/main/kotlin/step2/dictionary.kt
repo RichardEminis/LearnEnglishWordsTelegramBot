@@ -68,7 +68,7 @@ class Dictionary(
 
             if (displayedWords.size < NUMBER_OF_DISPLAYED_WORDS) {
                 val learnedWords = dictionary
-                    .filter { word: Word -> word.correctAnswersCount > 2 }
+                    .filter { word: Word -> word.correctAnswersCount > MIN_CORRECT_ANSWERS }
                     .shuffled()
                     .take(NUMBER_OF_DISPLAYED_WORDS - displayedWords.size)
                 displayedWords = (displayedWords + learnedWords).shuffled()
