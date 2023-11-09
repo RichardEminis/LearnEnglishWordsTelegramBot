@@ -2,11 +2,6 @@ package step2
 
 import java.io.File
 
-const val NUMBER_OF_DISPLAYED_WORDS = 4
-const val MIN_CORRECT_ANSWERS = 2
-const val MIN_CORRECT_ANSWERS_FOR_LEARNED = 3
-
-
 fun main() {
     val firstDictionary = Dictionary()
 
@@ -16,7 +11,7 @@ fun main() {
         println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
         when (readln().toInt()) {
             0 -> return
-            1 -> println(firstDictionary.learnWords())
+            1 -> println("Учить слова")
             2 -> println(firstDictionary.statistic())
             else -> println("Введено неверное значение")
         }
@@ -26,7 +21,7 @@ fun main() {
 data class Word(
     val text: String,
     val translate: String,
-    var correctAnswersCount: Int = 0
+    val correctAnswersCount: Int?
 )
 
 class Dictionary(
@@ -45,51 +40,10 @@ class Dictionary(
     }
 
     fun statistic() {
-        val learnedWords =
-            dictionary.filter { word: Word -> word.correctAnswersCount >= MIN_CORRECT_ANSWERS_FOR_LEARNED }.size
+        val learnedWords = dictionary.filter { word: Word -> word.correctAnswersCount!! >= 3 }.size
         val totalWords = dictionary.size
         val percent: Double = (learnedWords.toDouble() / totalWords.toDouble()) * 100
 
         println("Выучено $learnedWords из $totalWords слов | ${percent.toInt()}%")
-    }
-
-    fun learnWords() {
-        while (true) {
-            val unlearnedWords =
-                dictionary.filter { word: Word -> word.correctAnswersCount < MIN_CORRECT_ANSWERS_FOR_LEARNED }
-
-            if (unlearnedWords.isEmpty()) {
-                println("Вы выучили все слова")
-                return
-            }
-
-            var displayedWords = unlearnedWords.shuffled().take(NUMBER_OF_DISPLAYED_WORDS)
-            val selectedWord = displayedWords.random()
-
-            if (displayedWords.size < NUMBER_OF_DISPLAYED_WORDS) {
-                val learnedWords = dictionary
-                    .filter { word: Word -> word.correctAnswersCount > MIN_CORRECT_ANSWERS }
-                    .shuffled()
-                    .take(NUMBER_OF_DISPLAYED_WORDS - displayedWords.size)
-                displayedWords = (displayedWords + learnedWords).shuffled()
-            }
-
-            println("Изучаемое слово: ${selectedWord.text}")
-            println("Варианты ответа:")
-            for (i in 1..NUMBER_OF_DISPLAYED_WORDS) {
-                println("$i)${displayedWords[i - 1].translate}")
-            }
-            println("Для выхода введи 'МЕНЮ'")
-
-            val userAnswer = readln()
-            if (userAnswer.equals(selectedWord.translate, ignoreCase = true)) {
-                selectedWord.correctAnswersCount++
-                println("Верный ответ\n")
-            } else if (userAnswer.equals("меню", ignoreCase = true)) {
-                return
-            } else {
-                println("Неверный ответ\n")
-            }
-        }
     }
 }
