@@ -74,15 +74,19 @@ class Dictionary(
                 displayedWords = (displayedWords + learnedWords).shuffled()
             }
 
+
             println("Изучаемое слово: ${selectedWord.text}")
             println("Варианты ответа:")
+            var numberOfCorrectAnswer = 0
             for (i in 1..NUMBER_OF_DISPLAYED_WORDS) {
+                if (displayedWords[i - 1] == selectedWord) numberOfCorrectAnswer = i
                 println("$i)${displayedWords[i - 1].translate}")
             }
-            println("Для выхода введи '0'")
+            println("Введите вариант ответа от 1 до 4")
+            println("Для выхода введите '0'")
 
             val userAnswer = readln()
-            if (userAnswer.equals(selectedWord.translate, ignoreCase = true)) {
+            if (userAnswer.equals(numberOfCorrectAnswer.toString())) {
                 selectedWord.correctAnswersCount++
                 saveDictionary(dictionary)
                 println("Верный ответ\n")
@@ -94,7 +98,7 @@ class Dictionary(
         }
     }
 
-    fun saveDictionary(dictionary: MutableList<Word>) {
+    fun saveDictionary(dictionary: List<Word>) {
         val wordsFile = File("words.txt")
         var savedText = ""
         for (i in dictionary) {
