@@ -14,7 +14,7 @@ fun main() {
 
     while (true) {
         println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
-        when (readln().toInt()) {
+        when (readln().toIntOrNull()) {
             0 -> return
             1 -> println(firstDictionary.learnWords())
             2 -> println(firstDictionary.statistic())
@@ -79,14 +79,14 @@ class Dictionary(
             for (i in 1..NUMBER_OF_DISPLAYED_WORDS) {
                 println("$i)${displayedWords[i - 1].translate}")
             }
-            println("Для выхода введи 'МЕНЮ'")
+            println("Для выхода введи '0'")
 
             val userAnswer = readln()
             if (userAnswer.equals(selectedWord.translate, ignoreCase = true)) {
                 selectedWord.correctAnswersCount++
                 saveDictionary(dictionary)
                 println("Верный ответ\n")
-            } else if (userAnswer.equals("меню", ignoreCase = true)) {
+            } else if (userAnswer.equals("0")) {
                 return
             } else {
                 println("Неверный ответ\n")
@@ -98,7 +98,7 @@ class Dictionary(
         val wordsFile = File("words.txt")
         var savedText = ""
         for (i in dictionary) {
-            val line = i.text + "|" + i.translate + "|" + i.correctAnswersCount + "\n"
+            val line = "${i.text}|${i.translate}|${i.correctAnswersCount}\n"
             savedText += line
         }
         wordsFile.writeText(savedText)
