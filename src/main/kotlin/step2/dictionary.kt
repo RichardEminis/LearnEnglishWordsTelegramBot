@@ -74,7 +74,6 @@ class Dictionary(
                 displayedWords = (displayedWords + learnedWords).shuffled()
             }
 
-
             println("Изучаемое слово: ${selectedWord.text}")
             println("Варианты ответа:")
             var numberOfCorrectAnswer = 0
@@ -86,14 +85,12 @@ class Dictionary(
             println("Для выхода введите '0'")
 
             val userAnswer = readln().toIntOrNull()
-            if (userAnswer == numberOfCorrectAnswer) {
-                selectedWord.correctAnswersCount++
-                saveDictionary(dictionary)
-                println("Верный ответ\n")
-            } else if (userAnswer == 0) {
-                return
-            } else {
-                println("Неверный ответ\n")
+            when (userAnswer) {
+                0 -> return
+                in 1..NUMBER_OF_DISPLAYED_WORDS ->
+                    if (userAnswer == numberOfCorrectAnswer) println("Верный ответ!\n") else println("Неверный ответ!\n")
+
+                else -> println("Введите число от 0 до 4")
             }
         }
     }
