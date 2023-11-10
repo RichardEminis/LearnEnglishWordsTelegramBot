@@ -78,19 +78,19 @@ class Dictionary(
             println("Изучаемое слово: ${selectedWord.text}")
             println("Варианты ответа:")
             var numberOfCorrectAnswer = 0
-            for (i in 1..NUMBER_OF_DISPLAYED_WORDS) {
-                if (displayedWords[i - 1] == selectedWord) numberOfCorrectAnswer = i
-                println("$i)${displayedWords[i - 1].translate}")
+            displayedWords.mapIndexed { index, word ->
+                println("${index + 1})${word.translate}");
+                if (word.translate == selectedWord.translate) numberOfCorrectAnswer = index + 1
             }
             println("Введите вариант ответа от 1 до 4")
             println("Для выхода введите '0'")
 
-            val userAnswer = readln()
-            if (userAnswer.equals(numberOfCorrectAnswer.toString())) {
+            val userAnswer = readln().toIntOrNull()
+            if (userAnswer == numberOfCorrectAnswer) {
                 selectedWord.correctAnswersCount++
                 saveDictionary(dictionary)
                 println("Верный ответ\n")
-            } else if (userAnswer.equals("0")) {
+            } else if (userAnswer == 0) {
                 return
             } else {
                 println("Неверный ответ\n")
