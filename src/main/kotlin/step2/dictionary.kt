@@ -14,7 +14,7 @@ fun main() {
 
     while (true) {
         println("Меню: 1 – Учить слова, 2 – Статистика, 0 – Выход")
-        when (readln().toInt()) {
+        when (readln().toIntOrNull()) {
             0 -> return
             1 -> println(firstDictionary.learnWords())
             2 -> println(firstDictionary.statistic())
@@ -75,21 +75,39 @@ class Dictionary(
             }
 
             println("Изучаемое слово: ${selectedWord.text}")
-            println("Варианты ответа:")
-            for (i in 1..NUMBER_OF_DISPLAYED_WORDS) {
-                println("$i)${displayedWords[i - 1].translate}")
-            }
-            println("Для выхода введи 'МЕНЮ'")
+            val question = displayedWords
+                .mapIndexed { index, word -> "${index + 1}) ${word.translate}" }
+                .joinToString(
+                    prefix = "Варианты ответа:\n",
+                    separator = "\n",
+                    postfix = "\nВведите вариант ответа от 1 до $NUMBER_OF_DISPLAYED_WORDS\nДля выхода введите '0'"
+                )
+            println(question)
 
-            val userAnswer = readln()
-            if (userAnswer.equals(selectedWord.translate, ignoreCase = true)) {
-                selectedWord.correctAnswersCount++
-                println("Верный ответ\n")
-            } else if (userAnswer.equals("меню", ignoreCase = true)) {
-                return
-            } else {
-                println("Неверный ответ\n")
+            val userAnswer = readln().toIntOrNull()
+            when (userAnswer) {
+                0 -> return
+                in 1..NUMBER_OF_DISPLAYED_WORDS ->
+                    if (displayedWords.indexOf(selectedWord) + 1 == userAnswer) {
+                        selectedWord.correctAnswersCount++
+                        saveDictionary(dictionary)
+                        println("Верный ответ!\n")
+                    } else {
+                        println("Неверный ответ!\n")
+                    }
+
+                else -> println("Введите число от 0 до 4")
             }
         }
+    }
+
+    fun saveDictionary(dictionary: List<Word>) {
+        val wordsFile = File("words.txt")
+        var savedText = ""
+        for (i in dictionary) {
+            val line = "${i.text}|${i.translate}|${i.correctAnswersCount}\n"
+            savedText += line
+        }
+        wordsFile.writeText(savedText)
     }
 }
