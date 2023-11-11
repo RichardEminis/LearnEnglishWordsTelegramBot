@@ -75,20 +75,26 @@ class Dictionary(
             }
 
             println("Изучаемое слово: ${selectedWord.text}")
-            println("Варианты ответа:")
-            var numberOfCorrectAnswer = 0
-            displayedWords.mapIndexed { index, word ->
-                println("${index + 1})${word.translate}");
-                if (word.translate == selectedWord.translate) numberOfCorrectAnswer = index + 1
-            }
-            println("Введите вариант ответа от 1 до 4")
-            println("Для выхода введите '0'")
+            val question = displayedWords
+                .mapIndexed { index, word -> "${index + 1}) ${word.translate}" }
+                .joinToString(
+                    prefix = "Варианты ответа:\n",
+                    separator = "\n",
+                    postfix = "\nВведите вариант ответа от 1 до $NUMBER_OF_DISPLAYED_WORDS\nДля выхода введите '0'"
+                )
+            println(question)
 
             val userAnswer = readln().toIntOrNull()
             when (userAnswer) {
                 0 -> return
                 in 1..NUMBER_OF_DISPLAYED_WORDS ->
-                    if (userAnswer == numberOfCorrectAnswer) println("Верный ответ!\n") else println("Неверный ответ!\n")
+                    if (displayedWords.indexOf(selectedWord) + 1 == userAnswer) {
+                        selectedWord.correctAnswersCount++
+                        saveDictionary(dictionary)
+                        println("Верный ответ!\n")
+                    } else {
+                        println("Неверный ответ!\n")
+                    }
 
                 else -> println("Введите число от 0 до 4")
             }
