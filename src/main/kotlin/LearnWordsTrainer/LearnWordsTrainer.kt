@@ -1,6 +1,13 @@
 package LearnWordsTrainer
 
 import java.io.File
+import java.lang.IllegalStateException
+
+data class Word(
+    val text: String,
+    val translate: String,
+    var correctAnswersCount: Int = 0
+)
 
 data class Statistics(
     val learnedWords: Int,
@@ -19,10 +26,14 @@ class LearnWordsTrainer(
 ) {
 
     fun loadDictionary() {
-        val wordsFile = File("words.txt")
-        for (line in wordsFile.readLines()) {
-            val parsedLine = line.split("|")
-            dictionary.add(Word(parsedLine[0], parsedLine[1], parsedLine[2]?.toIntOrNull() ?: 0))
+        try {
+            val wordsFile = File("words.txt")
+            for (line in wordsFile.readLines()) {
+                val parsedLine = line.split("|")
+                dictionary.add(Word(parsedLine[0], parsedLine[1], parsedLine[2]?.toIntOrNull() ?: 0))
+            }
+        } catch (e: IndexOutOfBoundsException) {
+            throw IllegalStateException("Некорректный файл")
         }
     }
 
@@ -48,8 +59,16 @@ class LearnWordsTrainer(
     fun getNextQuestion(): Question? {
         val unlearnedWords = dictionary.filter { it.correctAnswersCount < MIN_CORRECT_ANSWERS_FOR_LEARNED }
         if (unlearnedWords.isEmpty()) return null
-        val displayedWords = unlearnedWords.shuffled().take(NUMBER_OF_DISPLAYED_WORDS)
+        var displayedWords = unlearnedWords.shuffled().take(NUMBER_OF_DISPLAYED_WORDS)
         val selectedWord = displayedWords.random()
+
+        if (unlearnedWords.size < NUMBER_OF_DISPLAYED_WORDS) {
+            val learnedWords = dictionary
+                .filter { word: Word -> word.correctAnswersCount >= MIN_CORRECT_ANSWERS_FOR_LEARNED }
+                .shuffled()
+                .take(NUMBER_OF_DISPLAYED_WORDS - unlearnedWords.size)
+            displayedWords = (unlearnedWords + learnedWords).shuffled()
+        }
         question = Question(variants = displayedWords, correctAnswer = selectedWord)
         return question
     }
@@ -66,5 +85,3 @@ class LearnWordsTrainer(
         } ?: false
     }
 }
-
-

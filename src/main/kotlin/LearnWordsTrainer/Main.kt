@@ -1,14 +1,7 @@
 package LearnWordsTrainer
 
 const val NUMBER_OF_DISPLAYED_WORDS = 4
-const val MIN_CORRECT_ANSWERS = 2
 const val MIN_CORRECT_ANSWERS_FOR_LEARNED = 3
-
-data class Word(
-    val text: String,
-    val translate: String,
-    var correctAnswersCount: Int = 0
-)
 
 fun Question.asConsoleString(): String {
     val variants = this.variants
@@ -22,7 +15,12 @@ fun Question.asConsoleString(): String {
 }
 
 fun main() {
-    val trainer = LearnWordsTrainer()
+    val trainer = try {
+        LearnWordsTrainer()
+    } catch (e: Exception) {
+        println("Невозможно загрузить словарь")
+        return
+    }
 
     trainer.loadDictionary()
 
@@ -36,14 +34,6 @@ fun main() {
                     if (question == null) {
                         println("Вы выучили все слова")
                         break
-                    }
-
-                    if (question.variants.size < NUMBER_OF_DISPLAYED_WORDS) {
-                        val learnedWords = trainer.dictionary
-                            .filter { word: Word -> word.correctAnswersCount > MIN_CORRECT_ANSWERS }
-                            .shuffled()
-                            .take(NUMBER_OF_DISPLAYED_WORDS - question.variants.size)
-                        question.variants = (question.variants + learnedWords).shuffled()
                     }
 
                     println(question.asConsoleString())
@@ -68,6 +58,3 @@ fun main() {
         }
     }
 }
-
-
-
