@@ -3,6 +3,12 @@ package LearnWordsTrainer
 import java.io.File
 import java.lang.IllegalStateException
 
+data class Word(
+    val text: String,
+    val translate: String,
+    var correctAnswersCount: Int = 0
+)
+
 data class Statistics(
     val learnedWords: Int,
     val totalWords: Int,
@@ -58,7 +64,7 @@ class LearnWordsTrainer(
 
         if (unlearnedWords.size < NUMBER_OF_DISPLAYED_WORDS) {
             val learnedWords = dictionary
-                .filter { word: Word -> word.correctAnswersCount > MIN_CORRECT_ANSWERS }
+                .filter { word: Word -> word.correctAnswersCount >= MIN_CORRECT_ANSWERS_FOR_LEARNED }
                 .shuffled()
                 .take(NUMBER_OF_DISPLAYED_WORDS - unlearnedWords.size)
             displayedWords = (unlearnedWords + learnedWords).shuffled()

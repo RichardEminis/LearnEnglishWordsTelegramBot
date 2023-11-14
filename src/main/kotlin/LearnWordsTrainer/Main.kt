@@ -1,14 +1,7 @@
 package LearnWordsTrainer
 
 const val NUMBER_OF_DISPLAYED_WORDS = 4
-const val MIN_CORRECT_ANSWERS = 2
 const val MIN_CORRECT_ANSWERS_FOR_LEARNED = 3
-
-data class Word(
-    val text: String,
-    val translate: String,
-    var correctAnswersCount: Int = 0
-)
 
 fun Question.asConsoleString(): String {
     val variants = this.variants
