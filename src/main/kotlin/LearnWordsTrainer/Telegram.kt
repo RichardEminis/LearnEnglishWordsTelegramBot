@@ -14,6 +14,7 @@ fun main(args: Array<String>) {
         Thread.sleep(2000)
         val updates: String = getUpdates(botToken, updateId)
         println(updates)
+        sendMessage(botToken,updateId)
 
         val startUpdateId = updates.lastIndexOf("update_id")
         val endUpdateId = updates.lastIndexOf(",\n\"message\"")
@@ -31,4 +32,12 @@ fun getUpdates(botToken: String, updateId: Int): String {
     val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
 
     return response.body()
+}
+
+fun sendMessage(botToken: String, updateId: Int){
+    val updates = getUpdates(botToken, updateId)
+    val messageRegexText: Regex = "\"id\":(.+?),".toRegex()
+    val matchResult: MatchResult? = messageRegexText.find(updates)
+    val groups = matchResult?.groups
+    val text = groups?.get(1)?.value
 }
