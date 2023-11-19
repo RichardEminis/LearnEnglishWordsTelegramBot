@@ -13,22 +13,60 @@ fun main(args: Array<String>) {
     while (true) {
         Thread.sleep(2000)
         val updates: String = getUpdates(botToken, updateId)
+
         println(updates)
 
-        val startUpdateId = updates.lastIndexOf("update_id")
-        val endUpdateId = updates.lastIndexOf(",\n\"message\"")
-        if (startUpdateId == -1 || endUpdateId == -1) continue
-        val updateIdString = updates.substring(startUpdateId + 11, endUpdateId)
+        if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
 
-        updateId = updateIdString.toInt() + 1
+        updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
     }
 }
 
 fun getUpdates(botToken: String, updateId: Int): String {
     val urlGetUpdates = "https://api.telegram.org/bot$botToken/getUpdates?offset=$updateId"
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val requests: HttpRequest = HttpRequest.newBuilder().uri(URI.create(urlGetUpdates)).build()
-    val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
+    val response = getResponse(urlGetUpdates)
 
     return response.body()
+}
+
+fun sendMessage(botToken: String, updateId: Int, text: String): String {
+    val updates = getUpdates(botToken, updateId)
+    val textForRegex = "\"id\":(.+?),"
+    val chatId = toRegexUpdate(textForRegex, updates)
+
+    val urlSendMessage = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=$text"
+    val response = getResponse(urlSendMessage)
+
+    return response.body()
+}
+
+fun getMessage(updates: String): String? {
+    val textForRegex = "\"text\":\"(.+?)\""
+    val text = toRegexUpdate(textForRegex, updates)
+
+    return text
+}
+
+fun toRegexUpdate(textToRegex: String, updates: String): String? {
+    val messageRegexText: Regex = textToRegex.toRegex()
+    val matchResult: MatchResult? = messageRegexText.find(updates)
+    val groups = matchResult?.groups
+    val text = groups?.get(1)?.value
+
+    return text
+}
+
+fun getResponse(url: String): HttpResponse<String> {
+    val client: HttpClient = HttpClient.newBuilder().build()
+    val requests: HttpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build()
+    val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
+
+    return response
+}
+
+fun getUpdateId(updates: String): String? {
+    val textForRegex = "\"update_id\":(.+?),"
+    val updateId = toRegexUpdate(textForRegex, updates)
+
+    return updateId
 }
