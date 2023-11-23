@@ -1,9 +1,11 @@
 package LearnWordsTrainer
 
 import java.net.URI
+import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
 
 fun main(args: Array<String>) {
 
@@ -18,7 +20,9 @@ fun main(args: Array<String>) {
 
         if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
 
-        sendMenu(botToken, updateId)
+        if (getMessage(updates) == "/start") sendMenu(botToken, updateId)
+
+        if (getClickData(updates) == "statistic_clicked") sendMessage(botToken, updateId, "Выученослов")
 
         updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
     }
@@ -33,10 +37,12 @@ fun getUpdates(botToken: String, updateId: Int): String {
 
 fun sendMessage(botToken: String, updateId: Int, text: String): String {
     val updates = getUpdates(botToken, updateId)
-    val textForRegex = "\"id\":(.+?),"
+    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val chatId = toRegexUpdate(textForRegex, updates)
 
-    val urlSendMessage = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=$text"
+    val encoded = URLEncoder.encode(text,StandardCharsets.UTF_8)
+
+    val urlSendMessage = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=$encoded"
     val response = getResponse(urlSendMessage)
 
     return response.body()
@@ -73,8 +79,18 @@ fun getUpdateId(updates: String): String? {
     return updateId
 }
 
+fun getClickData(updates: String): String? {
+    val textForRegex = "\"data\":\"(.+?)\""
+    val dataRegex = toRegexUpdate(textForRegex, updates)
+
+    return dataRegex
+}
+
 fun sendMenu(botToken: String, chatId: Int): String{
     val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
+    val textForRegex = "\"id\":(.+?),"
+    val updates = getUpdates(botToken, chatId)
+    val chatId = toRegexUpdate(textForRegex, updates)
     val sendMenuBody = """
         {
             "chat_id": $chatId,
@@ -84,11 +100,11 @@ fun sendMenu(botToken: String, chatId: Int): String{
                     [
                         {
                             "text": "Изучить слова",
-                            "callback_data": "data1"
+                            "callback_data": "statistic_clicked"
                         },
                         {
                             "text": "Статистика",
-                            "callback_data": "data2"
+                            "callback_data": "statistic_clicked"
                         }
                     ]
                 ]
