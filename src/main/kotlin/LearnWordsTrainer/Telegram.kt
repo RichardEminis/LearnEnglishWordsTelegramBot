@@ -49,7 +49,7 @@ fun main(args: Array<String>) {
 
         if (getClickData(updates) == STATISTIC_CLICKED) sendMessage(botToken, updateId, statisticsText)
 
-
+        if (getClickData(updates) == "answer_4") sendMenu(botToken, updateId)
 
         updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
     }
@@ -66,6 +66,7 @@ fun sendMessage(botToken: String, updateId: Int, text: String): String {
     val updates = getUpdates(botToken, updateId)
     val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val chatId = toRegexUpdate(textForRegex, updates)
+    println(chatId)
 
     val encoded = URLEncoder.encode(text,StandardCharsets.UTF_8)
 
@@ -115,7 +116,7 @@ fun getClickData(updates: String): String? {
 
 fun sendMenu(botToken: String, chatId: Int): String{
     val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
-    val textForRegex = "\"id\":(.+?),"
+    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val updates = getUpdates(botToken, chatId)
     val chatId = toRegexUpdate(textForRegex, updates)
     val sendMenuBody = """
@@ -152,9 +153,10 @@ fun sendMenu(botToken: String, chatId: Int): String{
 
 fun sendQuestion(botToken: String, chatId: Int, question: Question?): String{
     val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
-    val textForRegex = "\"id\":(.+?),"
+    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val updates = getUpdates(botToken, chatId)
     val chatId = toRegexUpdate(textForRegex, updates)
+    println(chatId)
 
     val variants = question?.variants?.mapIndexed { index, word -> word.translate }
 
@@ -185,7 +187,7 @@ fun sendQuestion(botToken: String, chatId: Int, question: Question?): String{
                     [
                         {
                             "text": "Меню",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 4} "
+                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 4}"
                         }
                     ]
                 ]
