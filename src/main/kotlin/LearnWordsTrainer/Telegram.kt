@@ -30,26 +30,23 @@ fun main(args: Array<String>) {
     val statistics = trainer.getStatistics()
     val statisticsText = "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
 
-
-
     while (true) {
         Thread.sleep(2000)
         val updates: String = getUpdates(botToken, updateId)
 
         println(updates)
 
-        val question = trainer.getNextQuestion()
 
 
         if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
 
         if (getMessage(updates) == "/start") sendMenu(botToken, updateId)
 
-        if (getClickData(updates) == LEARNED_WORDS_CLICKED) sendQuestion(botToken, updateId, question)
+        if (getClickData(updates) == LEARNED_WORDS_CLICKED) checkNextQuestionAndSend(trainer,botToken, updateId)
 
         if (getClickData(updates) == STATISTIC_CLICKED) sendMessage(botToken, updateId, statisticsText)
 
-        if (getClickData(updates) == "answer_4") sendMenu(botToken, updateId)
+        if (getClickData(updates) == CALLBACK_DATA_ANSWER_PREFIX + 4) sendMenu(botToken, updateId)
 
         updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
     }
@@ -204,4 +201,13 @@ fun sendQuestion(botToken: String, chatId: Int, question: Question?): String{
     val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
 
     return response.body()
+}
+
+fun checkNextQuestionAndSend(trainer: LearnWordsTrainer, botToken: String, chatId: Int) {
+    val question = trainer.getNextQuestion()
+    if (question == null) {
+        sendMessage(botToken, chatId, "Вы выучили все слова")
+    } else {
+        sendQuestion(botToken, chatId, question)
+    }
 }
