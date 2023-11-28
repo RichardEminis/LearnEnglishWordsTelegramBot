@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets
 
 const val STATISTIC_CLICKED = "statistics_clicked"
 const val LEARNED_WORDS_CLICKED = "learn_words_clicked"
+const val BACK_TO_MENU = "back_to_menu"
 const val CALLBACK_DATA_ANSWER_PREFIX = "answer_"
 
 fun main(args: Array<String>) {
@@ -16,12 +17,10 @@ fun main(args: Array<String>) {
     val botToken = args[0]
     var updateId = 0
 
-            //..............................................................................................
-
     val trainer = try {
         LearnWordsTrainer()
     } catch (e: Exception) {
-        println("Невозможно загрузить словарь")
+        println(sendMessage(botToken, updateId, "Невозможно загрузить словарь"))
         return
     }
 
@@ -34,19 +33,27 @@ fun main(args: Array<String>) {
         Thread.sleep(2000)
         val updates: String = getUpdates(botToken, updateId)
 
-        println(updates)
-
-
-
         if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
 
         if (getMessage(updates) == "/start") sendMenu(botToken, updateId)
 
-        if (getClickData(updates) == LEARNED_WORDS_CLICKED) checkNextQuestionAndSend(trainer,botToken, updateId)
+        if (getClickData(updates) == LEARNED_WORDS_CLICKED) checkNextQuestionAndSend(trainer, botToken, updateId)
 
         if (getClickData(updates) == STATISTIC_CLICKED) sendMessage(botToken, updateId, statisticsText)
 
-        if (getClickData(updates) == CALLBACK_DATA_ANSWER_PREFIX + 4) sendMenu(botToken, updateId)
+        if (getClickData(updates) == BACK_TO_MENU) sendMenu(botToken, updateId)
+
+        if ((getClickData(updates)?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true)) {
+            val indexOfAnswer = getClickData(updates)?.substringAfter(CALLBACK_DATA_ANSWER_PREFIX)?.toInt()
+            if (trainer.checkAnswer(indexOfAnswer)) {
+                sendMessage(botToken, updateId, "Верный ответ!!!")
+            } else {
+                sendMessage(botToken, updateId,
+                    "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
+                )
+            }
+            checkNextQuestionAndSend(trainer, botToken, updateId)
+        }
 
         updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
     }
@@ -65,7 +72,7 @@ fun sendMessage(botToken: String, updateId: Int, text: String): String {
     val chatId = toRegexUpdate(textForRegex, updates)
     println(chatId)
 
-    val encoded = URLEncoder.encode(text,StandardCharsets.UTF_8)
+    val encoded = URLEncoder.encode(text, StandardCharsets.UTF_8)
 
     val urlSendMessage = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=$encoded"
     val response = getResponse(urlSendMessage)
@@ -111,7 +118,7 @@ fun getClickData(updates: String): String? {
     return dataRegex
 }
 
-fun sendMenu(botToken: String, chatId: Int): String{
+fun sendMenu(botToken: String, chatId: Int): String {
     val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
     val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val updates = getUpdates(botToken, chatId)
@@ -148,7 +155,7 @@ fun sendMenu(botToken: String, chatId: Int): String{
     return response.body()
 }
 
-fun sendQuestion(botToken: String, chatId: Int, question: Question?): String{
+fun sendQuestion(botToken: String, chatId: Int, question: Question?): String {
     val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
     val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
     val updates = getUpdates(botToken, chatId)
@@ -166,25 +173,25 @@ fun sendQuestion(botToken: String, chatId: Int, question: Question?): String{
                     [
                         {
                             "text": "${variants?.get(0)}",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 0} "
-                        },
-                        {
-                            "text": "${variants?.get(1)}",
                             "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 1}"
                         },
                         {
-                            "text": "${variants?.get(2)}",
+                            "text": "${variants?.get(1)}",
                             "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 2}"
                         },
                         {
-                            "text": "${variants?.get(3)}",
+                            "text": "${variants?.get(2)}",
                             "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 3}"
+                        },
+                        {
+                            "text": "${variants?.get(3)}",
+                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 4}"
                         }
                     ],
                     [
                         {
                             "text": "Меню",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 4}"
+                            "callback_data": "$BACK_TO_MENU"
                         }
                     ]
                 ]
