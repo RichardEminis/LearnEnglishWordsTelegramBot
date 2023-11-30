@@ -22,7 +22,8 @@ data class Question(
 
 class LearnWordsTrainer(
     val dictionary: MutableList<Word> = mutableListOf(),
-    private var question: Question? = null
+    var question: Question? = null,
+    val trainer: String = ""
 ) {
 
     fun loadDictionary() {
