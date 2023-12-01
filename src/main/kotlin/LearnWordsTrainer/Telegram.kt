@@ -1,5 +1,8 @@
 package LearnWordsTrainer
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -13,6 +16,66 @@ const val BACK_TO_MENU = "back_to_menu"
 const val CALLBACK_DATA_ANSWER_PREFIX = "answer_"
 
 fun main(args: Array<String>) {
+
+    @Serializable
+    data class Update(
+        @SerialName("update_id")
+        val updateId: Long
+    )
+    @Serializable
+    data class Response(
+        @SerialName("result")
+        val result: List <Update>
+    )
+
+    val json = Json{
+        ignoreUnknownKeys = true
+    }
+
+    val responseString = """
+        {
+            "ok": true,
+            "result": [
+                {
+                    "update_id": 611141957,
+                    "message": {
+                        "message_id": 391,
+                        "from": {
+                            "id": 1130198888,
+                            "is_bot": false,
+                            "first_name": "Aleksandr",
+                            "last_name": "Belyaev",
+                            "username": "RichardEminis",
+                            "language_code": "ru"
+                        },
+                        "chat": {
+                            "id": 1130198888,
+                            "first_name": "Aleksandr",
+                            "last_name": "Belyaev",
+                            "username": "RichardEminis",
+                            "type": "private"
+                        },
+                        "date": 1701379663,
+                        "text": "/start",
+                        "entities": [
+                            {
+                                "offset": 0,
+                                "length": 6,
+                                "type": "bot_command"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    """.trimIndent()
+
+    val response= json.decodeFromString<Response>(responseString)
+
+
+
+
+    //...................................................
 
     val botToken = args[0]
     var updateId = 0
@@ -32,6 +95,8 @@ fun main(args: Array<String>) {
     while (true) {
         Thread.sleep(2000)
         val updates: String = getUpdates(botToken, updateId)
+
+        println(updates)
 
         if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
 
