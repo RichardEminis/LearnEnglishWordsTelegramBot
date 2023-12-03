@@ -45,7 +45,7 @@ class LearnWordsTrainer(
         }
     }
 
-    private fun saveDictionary(dictionary: List<Word>) {
+    private fun saveDictionary() {
         val wordsFile = File(fileName)
         var savedText = ""
         for (i in dictionary) {
@@ -85,11 +85,16 @@ class LearnWordsTrainer(
         return question?.let {
             if (it.variants.indexOf(it.correctAnswer) + 1 == userAnswerIndex) {
                 it.correctAnswer.correctAnswersCount++
-                saveDictionary(dictionary)
+                saveDictionary()
                 true
             } else {
                 false
             }
         } ?: false
+    }
+
+    fun resetProgress() {
+        dictionary.forEach { it.correctAnswersCount = 0 }
+        saveDictionary()
     }
 }

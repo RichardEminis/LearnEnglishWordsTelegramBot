@@ -13,6 +13,7 @@ const val STATISTIC_CLICKED = "statistics_clicked"
 const val LEARNED_WORDS_CLICKED = "learn_words_clicked"
 const val BACK_TO_MENU = "back_to_menu"
 const val CALLBACK_DATA_ANSWER_PREFIX = "answer_"
+const val RESET_CLICKED = "reset_clicked"
 
 @Serializable
 data class Update(
@@ -33,7 +34,7 @@ data class Response(
 @Serializable
 data class Message(
     @SerialName("text")
-    val text: String,
+    val text: String? = null,
     @SerialName("chat")
     val chat: Chat
 )
@@ -86,7 +87,6 @@ fun main(args: Array<String>) {
     while (true) {
         Thread.sleep(2000)
         val responseString: String = getUpdates(botToken, lastUpdateId)
-        println(responseString)
 
         val response: Response = json.decodeFromString(responseString)
         if (response.result.isEmpty()) continue
@@ -134,6 +134,11 @@ fun handleUpdate(update: Update, json: Json, botToken: String, trainers: HashMap
         }
         checkNextQuestionAndSend(json, trainer, botToken, chatId)
     }
+
+    if (data == RESET_CLICKED) {
+        trainer.resetProgress()
+        sendMessage(json, botToken, chatId, "Прогресс сброшен")
+    }
 }
 
 fun getUpdates(botToken: String, updateId: Long): String {
@@ -178,6 +183,9 @@ fun sendMenu(json: Json, botToken: String, chatId: Long?): String {
                 listOf(
                     InlineKeyboard(text = "Изучать слова", callbackData = LEARNED_WORDS_CLICKED),
                     InlineKeyboard(text = "Статистика", callbackData = STATISTIC_CLICKED)
+                ),
+                listOf(
+                    InlineKeyboard(text = "Сброс статистики", callbackData = RESET_CLICKED)
                 )
             )
         )
