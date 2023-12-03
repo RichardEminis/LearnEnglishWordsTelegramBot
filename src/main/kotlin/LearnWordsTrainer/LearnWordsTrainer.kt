@@ -21,25 +21,32 @@ data class Question(
 )
 
 class LearnWordsTrainer(
-    val dictionary: MutableList<Word> = mutableListOf(),
-    var question: Question? = null,
-    val trainer: String = ""
+    private val fileName: String = "words.txt",
+    var question: Question? = null
 ) {
 
-    fun loadDictionary() {
+    private val dictionary = loadDictionary()
+
+    fun loadDictionary(): List<Word> {
         try {
-            val wordsFile = File("words.txt")
+            val wordsFile = File(fileName)
+            if (!wordsFile.exists()) {
+                File("words.txt").copyTo(wordsFile)
+            }
+            val dictionary = mutableListOf<Word>()
+
             for (line in wordsFile.readLines()) {
                 val parsedLine = line.split("|")
-                dictionary.add(Word(parsedLine[0], parsedLine[1], parsedLine[2]?.toIntOrNull() ?: 0))
+                dictionary.add(Word(parsedLine[0], parsedLine[1], parsedLine[2].toIntOrNull() ?: 0))
             }
+            return dictionary
         } catch (e: IndexOutOfBoundsException) {
             throw IllegalStateException("Некорректный файл")
         }
     }
 
-    fun saveDictionary(dictionary: List<Word>) {
-        val wordsFile = File("words.txt")
+    private fun saveDictionary(dictionary: List<Word>) {
+        val wordsFile = File(fileName)
         var savedText = ""
         for (i in dictionary) {
             val line = "${i.text}|${i.translate}|${i.correctAnswersCount}\n"

@@ -80,19 +80,8 @@ fun main(args: Array<String>) {
 
     val botToken = args[0]
     var lastUpdateId = 0L
-
-    val json = Json {
-        ignoreUnknownKeys = true
-    }
-
-    val trainer = try {
-        LearnWordsTrainer()
-    } catch (e: Exception) {
-        println(sendMessage(json, botToken, lastUpdateId, "Невозможно загрузить словарь"))
-        return
-    }
-
-    trainer.loadDictionary()
+    val json = Json { ignoreUnknownKeys = true }
+    val trainers = HashMap<Long, LearnWordsTrainer>()
 
     while (true) {
         Thread.sleep(2000)
@@ -100,45 +89,50 @@ fun main(args: Array<String>) {
         println(responseString)
 
         val response: Response = json.decodeFromString(responseString)
-        val updates = response.result
-        val firstUpdate = updates.firstOrNull() ?: continue
-        val updateId = firstUpdate.updateId
-        lastUpdateId = updateId + 1
+        if (response.result.isEmpty()) continue
+        val sortedUpdates = response.result.sortedBy { it.updateId }
+        sortedUpdates.forEach { handleUpdate(it, json, botToken, trainers) }
+        lastUpdateId = sortedUpdates.last().updateId + 1
+    }
+}
 
-        val message = firstUpdate.message?.text
-        val chatId = firstUpdate.message?.chat?.id ?: firstUpdate.callbackQuery?.message?.chat?.id
-        val data = firstUpdate.callbackQuery?.data
+fun handleUpdate(update: Update, json: Json, botToken: String, trainers: HashMap<Long, LearnWordsTrainer>) {
 
-        if (message?.lowercase() == "/start" && chatId != null) sendMenu(json, botToken, chatId)
+    val message = update.message?.text
+    val chatId = update.message?.chat?.id ?: update.callbackQuery?.message?.chat?.id ?: return
+    val data = update.callbackQuery?.data
 
-        if (data == LEARNED_WORDS_CLICKED && chatId != null) {
-            checkNextQuestionAndSend(json, trainer, botToken, chatId)
-        }
+    val trainer =trainers.getOrPut(chatId) {LearnWordsTrainer("$chatId.txt")}
 
-        if (data == STATISTIC_CLICKED && chatId != null) {
-            val statistics: Statistics = trainer.getStatistics()
+    if (message?.lowercase() == "/start") sendMenu(json, botToken, chatId)
+
+    if (data == LEARNED_WORDS_CLICKED) {
+        checkNextQuestionAndSend(json, trainer, botToken, chatId)
+    }
+
+    if (data == STATISTIC_CLICKED) {
+        val statistics: Statistics = trainer.getStatistics()
+        sendMessage(
+            json,
+            botToken,
+            chatId,
+            "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
+        )
+    }
+
+    if (data == BACK_TO_MENU) sendMenu(json, botToken, chatId)
+
+    if ((data?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true)) {
+        val indexOfAnswer = data.substringAfter(CALLBACK_DATA_ANSWER_PREFIX).toInt() + 1
+        if (trainer.checkAnswer(indexOfAnswer)) {
+            sendMessage(json, botToken, chatId, "Верный ответ!!!")
+        } else {
             sendMessage(
-                json,
-                botToken,
-                chatId,
-                "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
+                json, botToken, chatId,
+                "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
             )
         }
-
-        if (data == BACK_TO_MENU && chatId != null) sendMenu(json, botToken, chatId)
-
-        if ((data?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true && chatId != null)) {
-            val indexOfAnswer = data.substringAfter(CALLBACK_DATA_ANSWER_PREFIX).toInt() + 1
-            if (trainer.checkAnswer(indexOfAnswer)) {
-                sendMessage(json, botToken, chatId, "Верный ответ!!!")
-            } else {
-                sendMessage(
-                    json, botToken, chatId,
-                    "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
-                )
-            }
-            checkNextQuestionAndSend(json, trainer, botToken, chatId)
-        }
+        checkNextQuestionAndSend(json, trainer, botToken, chatId)
     }
 }
 
