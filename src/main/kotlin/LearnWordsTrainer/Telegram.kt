@@ -1,76 +1,12 @@
 package LearnWordsTrainer
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
 const val STATISTIC_CLICKED = "statistics_clicked"
 const val LEARNED_WORDS_CLICKED = "learn_words_clicked"
 const val BACK_TO_MENU = "back_to_menu"
 const val CALLBACK_DATA_ANSWER_PREFIX = "answer_"
 const val RESET_CLICKED = "reset_clicked"
 const val TIMING = 2000L
-
-@Serializable
-data class Update(
-    @SerialName("update_id")
-    val updateId: Long,
-    @SerialName("message")
-    val message: Message? = null,
-    @SerialName("callback_query")
-    val callbackQuery: CallbackQuery? = null
-)
-
-@Serializable
-data class Response(
-    @SerialName("result")
-    val result: List<Update>
-)
-
-@Serializable
-data class Message(
-    @SerialName("text")
-    val text: String? = null,
-    @SerialName("chat")
-    val chat: Chat
-)
-
-@Serializable
-data class Chat(
-    @SerialName("id")
-    val id: Long
-)
-
-@Serializable
-data class SendMessageRequest(
-    @SerialName("chat_id")
-    val chatId: Long?,
-    @SerialName("text")
-    val text: String,
-    @SerialName("reply_markup")
-    val replyMarkup: ReplyMarkup? = null
-)
-
-@Serializable
-data class ReplyMarkup(
-    @SerialName("inline_keyboard")
-    val inlineKeyboard: List<List<InlineKeyboard>>
-)
-
-@Serializable
-data class InlineKeyboard(
-    @SerialName("callback_data")
-    val callbackData: String,
-    @SerialName("text")
-    val text: String,
-)
-
-@Serializable
-data class CallbackQuery(
-    @SerialName("data")
-    val data: String,
-    @SerialName("message")
-    val message: Message? = null
-)
+const val TELEGRAM_URL = "https://api.telegram.org/bot"
 
 fun main(args: Array<String>) {
 
@@ -89,8 +25,51 @@ fun main(args: Array<String>) {
         if (response.result.isEmpty()) continue
         val sortedUpdates = response.result.sortedBy { it.updateId }
         sortedUpdates.forEach {
-            telegramBotService.handleUpdate(it, trainers)
+            handleUpdate(telegramBotService, it, trainers)
         }
         lastUpdateId = sortedUpdates.last().updateId + 1
+    }
+}
+
+fun handleUpdate(telegramBotService: TelegramBotService, update: Update, trainers: HashMap<Long, LearnWordsTrainer>) {
+
+    val message = update.message?.text
+    val chatId = update.message?.chat?.id ?: update.callbackQuery?.message?.chat?.id ?: return
+    val data = update.callbackQuery?.data
+
+    val trainer = trainers.getOrPut(chatId) { LearnWordsTrainer("$chatId.txt") }
+
+    if (message?.lowercase() == "/start") telegramBotService.sendMenu(chatId)
+
+    if (data == LEARNED_WORDS_CLICKED) {
+        telegramBotService.checkNextQuestionAndSend(trainer, chatId)
+    }
+
+    if (data == STATISTIC_CLICKED) {
+        val statistics: Statistics = trainer.getStatistics()
+        telegramBotService.sendMessage(
+            chatId,
+            "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
+        )
+    }
+
+    if (data == BACK_TO_MENU) telegramBotService.sendMenu(chatId)
+
+    if ((data?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true)) {
+        val indexOfAnswer = data.substringAfter(CALLBACK_DATA_ANSWER_PREFIX).toInt() + 1
+        if (trainer.checkAnswer(indexOfAnswer)) {
+            telegramBotService.sendMessage(chatId, "Верный ответ!!!")
+        } else {
+            telegramBotService.sendMessage(
+                chatId,
+                "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
+            )
+        }
+        telegramBotService.checkNextQuestionAndSend(trainer, chatId)
+    }
+
+    if (data == RESET_CLICKED) {
+        trainer.resetProgress()
+        telegramBotService.sendMessage(chatId, "Прогресс сброшен")
     }
 }
