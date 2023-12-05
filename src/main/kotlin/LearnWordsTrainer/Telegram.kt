@@ -1,220 +1,75 @@
 package LearnWordsTrainer
 
-import java.net.URI
-import java.net.URLEncoder
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.nio.charset.StandardCharsets
-
 const val STATISTIC_CLICKED = "statistics_clicked"
 const val LEARNED_WORDS_CLICKED = "learn_words_clicked"
 const val BACK_TO_MENU = "back_to_menu"
 const val CALLBACK_DATA_ANSWER_PREFIX = "answer_"
+const val RESET_CLICKED = "reset_clicked"
+const val TIMING = 2000L
+const val TELEGRAM_URL = "https://api.telegram.org/bot"
 
 fun main(args: Array<String>) {
 
-    val botToken = args[0]
-    var updateId = 0
+    val telegramBotService = TelegramBotService(
+        botToken = args[0]
+    )
 
-    val trainer = try {
-        LearnWordsTrainer()
-    } catch (e: Exception) {
-        println(sendMessage(botToken, updateId, "Невозможно загрузить словарь"))
-        return
-    }
-
-    trainer.loadDictionary()
-
-    val statistics = trainer.getStatistics()
-    val statisticsText = "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
+    var lastUpdateId = 0L
+    val trainers = HashMap<Long, LearnWordsTrainer>()
 
     while (true) {
-        Thread.sleep(2000)
-        val updates: String = getUpdates(botToken, updateId)
+        Thread.sleep(TIMING)
+        val responseString: String = telegramBotService.getUpdates(telegramBotService.botToken, lastUpdateId)
 
-        if (getMessage(updates).equals("hello", ignoreCase = true)) sendMessage(botToken, updateId, "Hello!")
-
-        if (getMessage(updates) == "/start") sendMenu(botToken, updateId)
-
-        if (getClickData(updates) == LEARNED_WORDS_CLICKED) checkNextQuestionAndSend(trainer, botToken, updateId)
-
-        if (getClickData(updates) == STATISTIC_CLICKED) sendMessage(botToken, updateId, statisticsText)
-
-        if (getClickData(updates) == BACK_TO_MENU) sendMenu(botToken, updateId)
-
-        if ((getClickData(updates)?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true)) {
-            val indexOfAnswer = getClickData(updates)?.substringAfter(CALLBACK_DATA_ANSWER_PREFIX)?.toInt()
-            if (trainer.checkAnswer(indexOfAnswer)) {
-                sendMessage(botToken, updateId, "Верный ответ!!!")
-            } else {
-                sendMessage(botToken, updateId,
-                    "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
-                )
-            }
-            checkNextQuestionAndSend(trainer, botToken, updateId)
+        val response: Response = telegramBotService.json.decodeFromString(responseString)
+        if (response.result.isEmpty()) continue
+        val sortedUpdates = response.result.sortedBy { it.updateId }
+        sortedUpdates.forEach {
+            handleUpdate(telegramBotService, it, trainers)
         }
-
-        updateId = (getUpdateId(updates)?.toInt() ?: 0) + 1
+        lastUpdateId = sortedUpdates.last().updateId + 1
     }
 }
 
-fun getUpdates(botToken: String, updateId: Int): String {
-    val urlGetUpdates = "https://api.telegram.org/bot$botToken/getUpdates?offset=$updateId"
-    val response = getResponse(urlGetUpdates)
+fun handleUpdate(telegramBotService: TelegramBotService, update: Update, trainers: HashMap<Long, LearnWordsTrainer>) {
 
-    return response.body()
-}
+    val message = update.message?.text
+    val chatId = update.message?.chat?.id ?: update.callbackQuery?.message?.chat?.id ?: return
+    val data = update.callbackQuery?.data
 
-fun sendMessage(botToken: String, updateId: Int, text: String): String {
-    val updates = getUpdates(botToken, updateId)
-    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
-    val chatId = toRegexUpdate(textForRegex, updates)
-    println(chatId)
+    val trainer = trainers.getOrPut(chatId) { LearnWordsTrainer("$chatId.txt") }
 
-    val encoded = URLEncoder.encode(text, StandardCharsets.UTF_8)
+    if (message?.lowercase() == "/start") telegramBotService.sendMenu(chatId)
 
-    val urlSendMessage = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=$encoded"
-    val response = getResponse(urlSendMessage)
+    if (data == LEARNED_WORDS_CLICKED) {
+        telegramBotService.checkNextQuestionAndSend(trainer, chatId)
+    }
 
-    return response.body()
-}
+    if (data == STATISTIC_CLICKED) {
+        val statistics: Statistics = trainer.getStatistics()
+        telegramBotService.sendMessage(
+            chatId,
+            "Выучено ${statistics.learnedWords} из ${statistics.totalWords} слов | ${statistics.percent}%"
+        )
+    }
 
-fun getMessage(updates: String): String? {
-    val textForRegex = "\"text\":\"(.+?)\""
-    val text = toRegexUpdate(textForRegex, updates)
+    if (data == BACK_TO_MENU) telegramBotService.sendMenu(chatId)
 
-    return text
-}
-
-fun toRegexUpdate(textToRegex: String, updates: String): String? {
-    val messageRegexText: Regex = textToRegex.toRegex()
-    val matchResult: MatchResult? = messageRegexText.find(updates)
-    val groups = matchResult?.groups
-    val text = groups?.get(1)?.value
-
-    return text
-}
-
-fun getResponse(url: String): HttpResponse<String> {
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val requests: HttpRequest = HttpRequest.newBuilder().uri(URI.create(url)).build()
-    val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
-
-    return response
-}
-
-fun getUpdateId(updates: String): String? {
-    val textForRegex = "\"update_id\":(.+?),"
-    val updateId = toRegexUpdate(textForRegex, updates)
-
-    return updateId
-}
-
-fun getClickData(updates: String): String? {
-    val textForRegex = "\"data\":\"(.+?)\""
-    val dataRegex = toRegexUpdate(textForRegex, updates)
-
-    return dataRegex
-}
-
-fun sendMenu(botToken: String, chatId: Int): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
-    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
-    val updates = getUpdates(botToken, chatId)
-    val chatId = toRegexUpdate(textForRegex, updates)
-    val sendMenuBody = """
-        {
-            "chat_id": $chatId,
-            "text": "Основное меню",
-            "reply_markup": {
-                "inline_keyboard": [
-                    [
-                        {
-                            "text": "Изучить слова",
-                            "callback_data": "$LEARNED_WORDS_CLICKED"
-                        },
-                        {
-                            "text": "Статистика",
-                            "callback_data": "$STATISTIC_CLICKED"
-                        }
-                    ]
-                ]
-            }
+    if ((data?.startsWith(CALLBACK_DATA_ANSWER_PREFIX) == true)) {
+        val indexOfAnswer = data.substringAfter(CALLBACK_DATA_ANSWER_PREFIX).toInt() + 1
+        if (trainer.checkAnswer(indexOfAnswer)) {
+            telegramBotService.sendMessage(chatId, "Верный ответ!!!")
+        } else {
+            telegramBotService.sendMessage(
+                chatId,
+                "\"Не правильно: ${trainer.question?.correctAnswer?.text} - ${trainer.question?.correctAnswer?.translate}\""
+            )
         }
-    """.trimIndent()
+        telegramBotService.checkNextQuestionAndSend(trainer, chatId)
+    }
 
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val requests: HttpRequest = HttpRequest.newBuilder().uri(URI.create(sendMessage))
-        .header("Content-type", "application/json")
-        .POST(HttpRequest.BodyPublishers.ofString(sendMenuBody))
-        .build()
-
-    val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
-
-    return response.body()
-}
-
-fun sendQuestion(botToken: String, chatId: Int, question: Question?): String {
-    val sendMessage = "https://api.telegram.org/bot$botToken/sendMessage"
-    val textForRegex = "\"chat\":\\{\"id\":(\\d+),"
-    val updates = getUpdates(botToken, chatId)
-    val chatId = toRegexUpdate(textForRegex, updates)
-    println(chatId)
-
-    val variants = question?.variants?.mapIndexed { index, word -> word.translate }
-
-    val sendMenuBody = """
-        {
-            "chat_id": $chatId,
-            "text": "${question?.correctAnswer?.text}",
-            "reply_markup": {
-                "inline_keyboard": [
-                    [
-                        {
-                            "text": "${variants?.get(0)}",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 1}"
-                        },
-                        {
-                            "text": "${variants?.get(1)}",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 2}"
-                        },
-                        {
-                            "text": "${variants?.get(2)}",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 3}"
-                        },
-                        {
-                            "text": "${variants?.get(3)}",
-                            "callback_data": "${CALLBACK_DATA_ANSWER_PREFIX + 4}"
-                        }
-                    ],
-                    [
-                        {
-                            "text": "Меню",
-                            "callback_data": "$BACK_TO_MENU"
-                        }
-                    ]
-                ]
-            }
-        }
-    """.trimIndent()
-
-    val client: HttpClient = HttpClient.newBuilder().build()
-    val requests: HttpRequest = HttpRequest.newBuilder().uri(URI.create(sendMessage))
-        .header("Content-type", "application/json")
-        .POST(HttpRequest.BodyPublishers.ofString(sendMenuBody))
-        .build()
-
-    val response: HttpResponse<String> = client.send(requests, HttpResponse.BodyHandlers.ofString())
-
-    return response.body()
-}
-
-fun checkNextQuestionAndSend(trainer: LearnWordsTrainer, botToken: String, chatId: Int) {
-    val question = trainer.getNextQuestion()
-    if (question == null) {
-        sendMessage(botToken, chatId, "Вы выучили все слова")
-    } else {
-        sendQuestion(botToken, chatId, question)
+    if (data == RESET_CLICKED) {
+        trainer.resetProgress()
+        telegramBotService.sendMessage(chatId, "Прогресс сброшен")
     }
 }
